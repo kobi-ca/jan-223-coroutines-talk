@@ -1,0 +1,8 @@
+[requires]
+liburing/2.2
+bshoshany-thread-pool/3.3.0
+crc_cpp/1.1.0
+fmt/9.1.0
+
+[generators]
+cmake
