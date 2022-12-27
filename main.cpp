@@ -11,7 +11,8 @@
 example::result readSync(example::udp_connection& udp) {
     example::result result;
     const auto sz = udp.read(result.buffer_); // blocks
-    std::vector<std::byte> buffer(sz);
+    const std::vector<std::byte> buffer(result.buffer_.cbegin(),
+                                        result.buffer_.cbegin() + sz);
     result.crc_ = example::compute_crc16ccit(buffer);
     return result;
 }
@@ -32,7 +33,7 @@ int main() {
         results.push_back(readSync(udp_conn));
     }
     for(const auto& res : results) {
-        fmt::print("result crc {:#x}", res.crc_ );
+        fmt::print("result crc {:#5x}\n", res.crc_ );
     }
 
     return 0;

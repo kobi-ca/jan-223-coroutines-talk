@@ -25,6 +25,13 @@ namespace example {
             server_addr_.sin_family = AF_INET;
             server_addr_.sin_port = ::htons(port);
             server_addr_.sin_addr.s_addr = INADDR_ANY;
+
+            const auto res = ::bind(sock_,
+                                    reinterpret_cast<const sockaddr*>(&server_addr_),
+                                    sizeof(server_addr_));
+            if (res < 0) {
+                throw std::runtime_error("failed to bind socket");
+            }
         }
         [[nodiscard]] auto fd() const noexcept { return sock_; }
         ~udp_connection() {
