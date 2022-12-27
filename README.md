@@ -32,3 +32,17 @@ build_type=Release
 [env]
 
 ```
+
+# sedning nc commands
+
+example:
+
+```shell
+echo "hello world 1" | nc -nu 127.0.0.1 9090 -w0
+echo "hello world 2" | nc -nu 127.0.0.1 9091 -w0
+```
+
+and the results are shown in the terminal (crc results)
+
+# refrences:
+- [udp server](https://www.geeksforgeeks.org/udp-server-client-implementation-c/)
