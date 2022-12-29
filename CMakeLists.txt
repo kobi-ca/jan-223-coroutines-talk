@@ -16,3 +16,14 @@ target_link_libraries(jan_2023_coroutines
         CONAN_PKG::bshoshany-thread-pool
         CONAN_PKG::crc_cpp
         CONAN_PKG::fmt)
+
+add_executable(coro coro.cpp
+        udp-socket.hpp
+        result.hpp
+        constants.hpp
+        compute-crc.hpp)
+target_link_libraries(coro
+        CONAN_PKG::liburing
+        CONAN_PKG::bshoshany-thread-pool
+        CONAN_PKG::crc_cpp
+        CONAN_PKG::fmt)

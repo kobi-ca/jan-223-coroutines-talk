@@ -33,7 +33,7 @@ build_type=Release
 
 ```
 
-# sedning nc commands
+# sending nc commands
 
 example:
 
@@ -44,5 +44,5 @@ echo "hello world 2" | nc -nu 127.0.0.1 9091 -w0
 
 and the results are shown in the terminal (crc results)
 
-# refrences:
+# references:
 - [udp server](https://www.geeksforgeeks.org/udp-server-client-implementation-c/)
