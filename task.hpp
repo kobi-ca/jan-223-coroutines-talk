@@ -43,6 +43,7 @@ namespace example {
         [[nodiscard]]
         bool done() const { return handle_.done(); }
 
+    private:
         using HandleT = std::coroutine_handle<promise_type>;
         HandleT handle_;
     };
