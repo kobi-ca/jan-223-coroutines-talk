@@ -19,7 +19,7 @@ namespace example {
 
             Task get_return_object() { return Task(this); }
             void unhandled_exception() noexcept {}
-            void return_value(example::result res) noexcept { result = std::move(res); }
+            void return_value(example::result res) noexcept { result = res; }
             std::suspend_never initial_suspend() noexcept { return {}; }
             std::suspend_always final_suspend() noexcept { return {}; }
         };
@@ -38,11 +38,6 @@ namespace example {
         example::result get_result() const & {
             assert(handle_.done());
             return handle_.promise().result;
-        }
-
-        example::result&& get_result() && {
-            assert(handle_.done());
-            return std::move(handle_.promise().result);
         }
 
         [[nodiscard]]
