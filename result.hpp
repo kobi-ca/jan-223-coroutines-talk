@@ -14,6 +14,7 @@ namespace example {
     struct result final {
         std::array<std::byte, BUFSIZE> buffer_{};
         std::uint16_t crc_{};
+        std::size_t sz_{};
         [[nodiscard]] static auto capacity() noexcept { return BUFSIZE; }
     };
 }

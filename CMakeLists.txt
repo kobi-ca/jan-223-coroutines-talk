@@ -22,7 +22,8 @@ add_executable(coro coro.cpp
         result.hpp
         constants.hpp
         compute-crc.hpp
-        task.hpp)
+        task.hpp
+        iouring.hpp)
 target_link_libraries(coro
         CONAN_PKG::liburing
         CONAN_PKG::bshoshany-thread-pool
