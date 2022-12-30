@@ -1,58 +1,17 @@
 #include <vector>
 #include <tuple>
-#include <memory>
 #include <coroutine>
-#include <utility> // exchange
-#include <cassert>
 #include <thread>
 #include <algorithm>
 
 #include "fmt/format.h"
 
 #include "result.hpp"
+#include "task.hpp"
 #include "udp-socket.hpp"
 #include "compute-crc.hpp"
 
 namespace {
-    class Task {
-    public:
-        struct promise_type {
-            example::result result;
-
-            Task get_return_object() { return Task(this); }
-            void unhandled_exception() noexcept {}
-            void return_value(example::result res) noexcept { result = std::move(res); }
-            std::suspend_never initial_suspend() noexcept { return {}; }
-            std::suspend_always final_suspend() noexcept { return {}; }
-        };
-
-        explicit Task(promise_type *promise)
-                : handle_{HandleT::from_promise(*promise)} {}
-        Task(Task &&other) noexcept : handle_{std::exchange(other.handle_, nullptr)} {}
-
-        ~Task() {
-            if (handle_) {
-                handle_.destroy();
-            }
-        }
-
-        [[nodiscard]]
-        example::result get_result() const & {
-            assert(handle_.done());
-            return handle_.promise().result;
-        }
-
-        example::result&& get_result() && {
-            assert(handle_.done());
-            return std::move(handle_.promise().result);
-        }
-
-        [[nodiscard]]
-        bool done() const { return handle_.done(); }
-
-        using HandleT = std::coroutine_handle<promise_type>;
-        HandleT handle_;
-    };
 
     struct request_data {
         std::coroutine_handle<> handle;
@@ -91,13 +50,13 @@ namespace {
         example::udp_connection* udp_{};
     };
 
-    Task readAsync(example::udp_connection& udp) {
+    example::Task readAsync(example::udp_connection& udp) {
         const auto res = co_await read_udp_socket(udp);
         co_return res;
     }
 
     [[nodiscard]]
-    bool all_done(const std::vector<Task> &tasks) {
+    bool all_done(const std::vector<example::Task> &tasks) {
         return std::all_of(tasks.cbegin(), tasks.cend(),
                            [](const auto &t) { return t.done(); });
     }
@@ -113,7 +72,7 @@ int main() {
     for (auto [port, end] = start_end_ports_open_range; port < end; ++port) {
         connections.push_back(std::make_unique<example::udp_connection>(port));
     }
-    std::vector<Task> tasks;
+    std::vector<example::Task> tasks;
     tasks.reserve(total_incoming_sockets);
     for(const auto& conn : connections) {
         auto& udp_conn = *conn;

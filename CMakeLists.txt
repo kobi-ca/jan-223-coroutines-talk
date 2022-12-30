@@ -21,7 +21,8 @@ add_executable(coro coro.cpp
         udp-socket.hpp
         result.hpp
         constants.hpp
-        compute-crc.hpp)
+        compute-crc.hpp
+        task.hpp)
 target_link_libraries(coro
         CONAN_PKG::liburing
         CONAN_PKG::bshoshany-thread-pool
