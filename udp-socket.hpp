@@ -46,7 +46,7 @@ namespace example {
         [[nodiscard]]
         std::size_t read(std::array<std::byte, BUFSIZE> &out) {
             socklen_t src_addr_out{};
-            const int flags = 0;
+            constexpr int flags = 0;
             const auto res = recvfrom(sock_, out.data(), out.size(), flags,
                                       reinterpret_cast<sockaddr *>(&server_addr_),
                                       &src_addr_out);
