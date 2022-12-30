@@ -8,6 +8,7 @@
 #include "udp-socket.hpp"
 #include "compute-crc.hpp"
 
+[[nodiscard]]
 example::result readSync(example::udp_connection& udp) {
     example::result result;
     const auto sz = udp.read(result.buffer_); // blocks

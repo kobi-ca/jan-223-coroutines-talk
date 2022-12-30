@@ -33,7 +33,6 @@ namespace example {
                 throw std::runtime_error("failed to bind socket");
             }
         }
-        [[nodiscard]] auto fd() const noexcept { return sock_; }
         ~udp_connection() {
             if(sock_ != INVALID_SOCK) {
                 ::close(sock_);
