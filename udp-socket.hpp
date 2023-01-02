@@ -16,7 +16,7 @@ namespace example {
 
     class udp_connection final {
     public:
-        explicit udp_connection(const uint16_t port) {
+        explicit udp_connection(const uint16_t port) : port_{port} {
             sock_ = socket(AF_INET, SOCK_DGRAM, 0);
             if (sock_ < 0) {
                 sock_ = INVALID_SOCK;
@@ -42,6 +42,8 @@ namespace example {
         udp_connection(udp_connection&& udp) = delete;
         udp_connection& operator=(udp_connection&& udp) = delete;
 
+        [[nodiscard]] auto port() const noexcept { return port_; }
+
         [[nodiscard]]
         std::size_t read(std::array<std::byte, BUFSIZE> &out) {
             socklen_t src_addr_out{};
@@ -58,6 +60,7 @@ namespace example {
         static constexpr auto INVALID_SOCK = -1;
         sockaddr_in server_addr_{};
         int sock_{INVALID_SOCK};
+        uint16_t port_{};
     };
 
 }
