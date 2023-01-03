@@ -6,14 +6,13 @@ set(CMAKE_CXX_STANDARD 23)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
-add_executable(jan_2023_coroutines main.cpp
+add_executable(jan_2023_coroutines sync.cpp
         udp-socket.hpp
         result.hpp
         constants.hpp
         compute-crc.hpp)
 target_link_libraries(jan_2023_coroutines
-        CONAN_PKG::liburing
-        CONAN_PKG::bshoshany-thread-pool
+        PRIVATE
         CONAN_PKG::crc_cpp
         CONAN_PKG::fmt)
 
@@ -25,7 +24,12 @@ add_executable(coro coro.cpp
         task.hpp
         iouring.hpp)
 target_link_libraries(coro
-        CONAN_PKG::liburing
-        CONAN_PKG::bshoshany-thread-pool
+        PRIVATE
+        uring
         CONAN_PKG::crc_cpp
+        CONAN_PKG::fmt)
+
+add_executable(gen generator.cpp)
+target_link_libraries(gen
+        PRIVATE
         CONAN_PKG::fmt)
