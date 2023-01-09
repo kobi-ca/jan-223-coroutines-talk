@@ -44,5 +44,14 @@ echo "hello world 2" | nc -nu 127.0.0.1 9091 -w0
 
 and the results are shown in the terminal (crc results)
 
+# installing liburing
+
+You can use conan.io to install liburing or your fav package manager. e.g.
+
+```shell
+sudo apt -y install liburing-dev
+```
+
 # references:
 - [udp server](https://www.geeksforgeeks.org/udp-server-client-implementation-c/)
+- [io_uring and coroutines](https://pabloariasal.github.io/2022/11/12/couring-1/)
