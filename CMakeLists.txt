@@ -33,3 +33,6 @@ add_executable(gen generator.cpp)
 target_link_libraries(gen
         PRIVATE
         CONAN_PKG::fmt)
+
+add_executable(immediate-ret-generator immediate-ret-generator.cpp)
+target_link_libraries(immediate-ret-generator PRIVATE CONAN_PKG::fmt)
