@@ -36,3 +36,6 @@ target_link_libraries(gen
 
 add_executable(immediate-ret-generator immediate-ret-generator.cpp)
 target_link_libraries(immediate-ret-generator PRIVATE CONAN_PKG::fmt)
+
+add_executable(thread-sync-example thread-sync-example.cpp)
+target_link_libraries(thread-sync-example PRIVATE CONAN_PKG::fmt)
