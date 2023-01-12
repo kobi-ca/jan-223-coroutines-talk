@@ -97,7 +97,9 @@ struct Task {
     struct promise_type {
         Task get_return_object() { return {}; }
         std::suspend_never initial_suspend() { return {}; }
-        std::suspend_never final_suspend() noexcept { return {}; }
+        std::suspend_never final_suspend() noexcept {
+            std::cout << "final_suspend\n";
+            return {}; }
         void return_void() {}
         void unhandled_exception() {
             std::cout << "exception\n";
@@ -105,13 +107,15 @@ struct Task {
     };
 };
 
-Task receiver(Event& event) {
+Task receiver(Event& event) try {
     auto start = std::chrono::high_resolution_clock::now();
     co_await event;
     std::cout << "Got the notification! " << '\n';
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Waited " << elapsed.count() << " seconds." << '\n';
+} catch (...) {
+    std::cerr << "exception!!!n";
 }
 
 using namespace std::chrono_literals;
@@ -139,6 +143,5 @@ int main() {
 
     receiverThread2.join();
     senderThread2.join();
-
     std::cout << "done2" << '\n';
 }
