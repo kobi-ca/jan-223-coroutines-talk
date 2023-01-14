@@ -64,6 +64,7 @@ namespace {
                              const int fd) {
             sqe_ = io_uring_get_sqe(uring.get());
             constexpr auto offset = 0ULL;
+            fmt::print("io_uring_prep_write\n");
             io_uring_prep_write(sqe_, fd, res.buffer_.data(), res.sz_, offset);
         }
 
@@ -74,6 +75,8 @@ namespace {
                 explicit Awaiter(io_uring_sqe * const sqe) : entry_{sqe} {}
                 bool await_ready() { return false; }
                 void await_suspend(std::coroutine_handle<> handle) noexcept {
+                    assert(entry_);
+                    fmt::print("await_suspend in write_file_awaitable\n");
                     write_ctx_.handle = handle;
                     io_uring_sqe_set_data(entry_, &write_ctx_);
                 }
@@ -88,6 +91,7 @@ namespace {
     example::Task readUdpWriteFileAsync(example::udp_connection& udp,
                                         example::IOUring &uring) {
         auto res = co_await read_udp_socket(udp);
+        fmt::print("done udp ...\n");
         auto fd = ::open(fmt::format("udp-crc-{}.txt", udp.port()).c_str(),
                         O_TRUNC | O_CREAT | O_WRONLY,
                          S_IRUSR | S_IWUSR);
@@ -97,8 +101,9 @@ namespace {
             co_return {};
         }
         const auto status = co_await write_file_awaitable(uring, res, fd);
+        fmt::print("done write file\n");
         if(!status) {
-            fmt::print("error write_file_awaitable\n");
+            fmt::print(stderr, "error write_file_awaitable\n");
             co_return {};
         }
         ::close(fd);
@@ -113,11 +118,16 @@ namespace {
 
     [[nodiscard]]
     std::size_t consumeCQEntries(example::IOUring &uring) {
+        //fmt::print("in consume\n");
         int processed{0};
         io_uring_cqe *cqe{};
         unsigned int head; // head of the ring buffer, unused
         io_uring_for_each_cqe(uring.get(), head, cqe) {
             auto *ctx = static_cast<write_ctx *>(io_uring_cqe_get_data(cqe));
+            fmt::print("ctx is {}\n", ctx != nullptr);
+            if (!ctx) {
+                return 0;
+            }
             assert(ctx);
             // make sure to set the status code before resuming the coroutine
             ctx->status_code = cqe->res;
@@ -128,11 +138,58 @@ namespace {
         return processed;
     }
 
+//    [[nodiscard]]
+//    std::size_t consumeCQEntries(example::IOUring &uring, io_uring_cqe *cqe) {
+//        //fmt::print("in consume\n");
+//        int processed{0};
+//        auto *ctx = static_cast<write_ctx *>(io_uring_cqe_get_data(cqe));
+//        fmt::print("ctx is {}\n", ctx != nullptr);
+//        assert(ctx);
+//        // make sure to set the status code before resuming the coroutine
+//        ctx->status_code = cqe->res;
+//        ctx->handle.resume(); // await_resume is called here
+//        ++processed;
+//        io_uring_cq_advance(uring.get(), processed);
+//        return processed;
+//    }
+
+    [[nodiscard]]
+    std::size_t consumeCQEntriesBlockingTo(example::IOUring &uring) {
+        //fmt::print("io_uring_submit_and_wait ...\n");
+        io_uring_cqe *temp{};
+        __kernel_timespec tv{0,0};
+        const auto res = io_uring_submit_and_wait_timeout(uring.get(), &temp, 1, &tv, nullptr); // blocks if queue empty
+        //fmt::print("io_uring_submit_and_wait res {}\n", res);
+        if (res == -ETIME || res == 0) {
+            return 0;
+        }
+        //return consumeCQEntries(uring);
+        auto *ctx = static_cast<write_ctx *>(io_uring_cqe_get_data(temp));
+        ctx->status_code = temp->res;
+        ctx->handle.resume();
+        return 0;
+    }
+
     [[nodiscard]]
     auto consumeCQEntriesBlocking(example::IOUring &uring) {
-        io_uring_submit_and_wait(uring.get(), 1); // blocks if queue empty
+        fmt::print("io_uring_submit_and_wait ...\n");
+        const auto res = io_uring_submit_and_wait(uring.get(), 1); // blocks if queue empty
+        fmt::print("io_uring_submit_and_wait res {}\n", res);
         return consumeCQEntries(uring);
     }
+
+    [[nodiscard]]
+    std::size_t consumeCQEntriesNonBlocking(example::IOUring &uring) {
+        io_uring_cqe *temp{};
+        if (io_uring_peek_cqe(uring.get(), &temp) == 0) {
+            using namespace std::chrono_literals;
+            //std::this_thread::sleep_for(1s);
+            fmt::print("found!\n");
+            return consumeCQEntries(uring);
+        }
+        return 0;
+    }
+
 }
 
 
@@ -154,10 +211,13 @@ int main() {
     }
 
     using namespace std::chrono_literals;
-    std::this_thread::sleep_for(5s);
+    //std::this_thread::sleep_for(5s);
+    // io_uring_submit(uring.get());
     while(!all_done(tasks)) {
-        std::this_thread::sleep_for(1s);
-        fmt::print("consume {}\n", consumeCQEntriesBlocking(uring));
+        //std::this_thread::sleep_for(1s);
+        //std::ignore = consumeCQEntriesNonBlocking(uring);
+        std::ignore = consumeCQEntriesBlockingTo(uring);
+        //fmt::print("consume {}\n", consumeCQEntriesNonBlocking(uring));
     }
 
     for(const auto& res : tasks) {
