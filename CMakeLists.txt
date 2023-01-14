@@ -7,6 +7,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 add_executable(jan_2023_coroutines sync.cpp
+        utils.hpp
         udp-socket.hpp
         result.hpp
         constants.hpp
@@ -17,6 +18,7 @@ target_link_libraries(jan_2023_coroutines
         CONAN_PKG::fmt)
 
 add_executable(coro coro.cpp
+        utils.hpp
         udp-socket.hpp
         result.hpp
         constants.hpp
@@ -29,13 +31,13 @@ target_link_libraries(coro
         CONAN_PKG::crc_cpp
         CONAN_PKG::fmt)
 
-add_executable(gen generator.cpp)
+add_executable(gen generator.cpp utils.hpp)
 target_link_libraries(gen
         PRIVATE
         CONAN_PKG::fmt)
 
-add_executable(immediate-ret-generator immediate-ret-generator.cpp)
+add_executable(immediate-ret-generator immediate-ret-generator.cpp utils.hpp)
 target_link_libraries(immediate-ret-generator PRIVATE CONAN_PKG::fmt)
 
-add_executable(thread-sync-example thread-sync-example.cpp)
+add_executable(thread-sync-example thread-sync-example.cpp utils.hpp)
 target_link_libraries(thread-sync-example PRIVATE CONAN_PKG::fmt)
