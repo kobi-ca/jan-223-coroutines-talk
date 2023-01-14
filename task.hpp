@@ -15,21 +15,32 @@ namespace example {
     class Task {
     public:
         struct promise_type {
+            ~promise_type() { fmt::print("promise ~\n"); }
             example::result result;
 
             Task get_return_object() { return Task(this); }
             void unhandled_exception() noexcept {}
             void return_value(example::result res) noexcept { result = res; }
-            std::suspend_never initial_suspend() noexcept { return {}; }
-            std::suspend_always final_suspend() noexcept { return {}; }
+            std::suspend_never initial_suspend() noexcept {
+                fmt::print("in initial_suspend\n");
+                return {};
+            }
+            std::suspend_always final_suspend() noexcept {
+                fmt::print("in final_suspend\n");
+                return {};
+            }
         };
 
         explicit Task(promise_type *promise)
-                : handle_{HandleT::from_promise(*promise)} {}
+                : handle_{HandleT::from_promise(*promise)} {
+            fmt::print("task ctor\n");
+        }
         Task(Task &&other) noexcept : handle_{std::exchange(other.handle_, nullptr)} {}
 
         ~Task() {
+            fmt::print("task~\n");
             if (handle_) {
+                fmt::print("handle destroy in task~\n");
                 handle_.destroy();
             }
         }

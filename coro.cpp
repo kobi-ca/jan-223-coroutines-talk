@@ -34,6 +34,7 @@ namespace {
         explicit read_udp_socket(example::udp_connection& udp) : udp_ {&udp} {}
         auto operator co_await() {
             struct Awaiter {
+                ~Awaiter() { fmt::print("read awaiter ~\n"); }
                 example::udp_connection* udp_{};
                 request_data data_;
                 std::thread t_;
@@ -64,17 +65,20 @@ namespace {
                              const int fd) {
             sqe_ = io_uring_get_sqe(uring.get());
             constexpr auto offset = 0ULL;
+            fmt::print("submitting\n");
             io_uring_prep_write(sqe_, fd, res.buffer_.data(), res.sz_, offset);
         }
 
         auto operator co_await () {
             struct Awaiter {
+                ~Awaiter() { fmt::print("write awaiter ~\n"); }
                 io_uring_sqe *entry_{};
                 write_ctx write_ctx_;
                 explicit Awaiter(io_uring_sqe * const sqe) : entry_{sqe} {}
                 bool await_ready() { return false; }
                 void await_suspend(std::coroutine_handle<> handle) noexcept {
                     write_ctx_.handle = handle;
+                    fmt::print("setting data\n");
                     io_uring_sqe_set_data(entry_, &write_ctx_);
                 }
                 int await_resume() { return write_ctx_.status_code; }
@@ -87,6 +91,7 @@ namespace {
 
     example::Task readUdpWriteFileAsync(example::udp_connection& udp,
                                         example::IOUring &uring) {
+        fmt::print("starting readUdp\n");
         auto res = co_await read_udp_socket(udp);
         auto fd = ::open(fmt::format("udp-crc-{}.txt", udp.port()).c_str(),
                         O_TRUNC | O_CREAT | O_WRONLY,
@@ -96,19 +101,31 @@ namespace {
             ::fflush(nullptr);
             co_return {};
         }
+        fmt::print("before co_await write file\n");
         const auto status = co_await write_file_awaitable(uring, res, fd);
         if(!status) {
             fmt::print("error write_file_awaitable\n");
             co_return {};
         }
         ::close(fd);
+        fmt::print("exiting readWriteFileAsync\n");
         co_return res;
     }
 
     [[nodiscard]]
     bool all_done(const std::vector<example::Task> &tasks) {
-        return std::all_of(tasks.cbegin(), tasks.cend(),
-                           [](const auto &t) { return t.done(); });
+        bool done1{}, done2{};
+        if (tasks[0].done()) {
+            fmt::print("task 0 is done\n");
+            done1 = true;
+        }
+        if (tasks[1].done()) {
+            fmt::print("task 1 is done\n");
+            done2 = true;
+        }
+        return done1 && done2;
+//        return std::all_of(tasks.cbegin(), tasks.cend(),
+//                           [](const auto &t) { return t.done(); });
     }
 
     [[nodiscard]]
@@ -130,8 +147,19 @@ namespace {
 
     [[nodiscard]]
     auto consumeCQEntriesBlocking(example::IOUring &uring) {
+        fmt::print("start sleepinng\n");
         io_uring_submit_and_wait(uring.get(), 1); // blocks if queue empty
         return consumeCQEntries(uring);
+    }
+
+    [[nodiscard]]
+    auto consumeCQEntriesNonBlocking(example::IOUring &uring) {
+        io_uring_cqe *temp;
+        //fmt::print("start peeking\n");
+        if (io_uring_peek_cqe(uring.get(), &temp) == 0) {
+            return consumeCQEntries(uring);
+        }
+        return std::size_t{};
     }
 }
 
@@ -150,14 +178,19 @@ int main() {
     tasks.reserve(total_incoming_sockets);
     for(const auto& conn : connections) {
         auto& udp_conn = *conn;
-        tasks.push_back(readUdpWriteFileAsync(udp_conn, uring));
+        fmt::print("creating task\n");
+        auto&& t = readUdpWriteFileAsync(udp_conn, uring);
+        fmt::print("pushing task\n");
+        tasks.push_back(std::move(t));
     }
 
     using namespace std::chrono_literals;
-    std::this_thread::sleep_for(5s);
+    //std::this_thread::sleep_for(5s);
+    io_uring_submit(uring.get());
     while(!all_done(tasks)) {
-        std::this_thread::sleep_for(1s);
-        fmt::print("consume {}\n", consumeCQEntriesBlocking(uring));
+        //std::this_thread::sleep_for(1s);
+        //fmt::print("consume {}\n", consumeCQEntriesBlocking(uring));
+        std::ignore = consumeCQEntriesNonBlocking(uring);
     }
 
     for(const auto& res : tasks) {
