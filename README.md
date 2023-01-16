@@ -55,3 +55,5 @@ sudo apt -y install liburing-dev
 # references:
 - [udp server](https://www.geeksforgeeks.org/udp-server-client-implementation-c/)
 - [io_uring and coroutines](https://pabloariasal.github.io/2022/11/12/couring-1/)
+- [testing io_uring and liburing](https://github.com/shuveb/loti-examples/)
+- [perf analysis](https://blog.cloudflare.com/missing-manuals-io_uring-worker-pool/)
