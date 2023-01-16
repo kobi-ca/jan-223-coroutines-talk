@@ -63,6 +63,7 @@ namespace {
                              example::result& res,
                              const int fd) {
             sqe_ = io_uring_get_sqe(uring.get());
+            ring_ = uring.get();
             constexpr auto offset = 0ULL;
             io_uring_prep_write(sqe_, fd, res.buffer_.data(), res.sz_, offset);
         }
@@ -70,19 +71,22 @@ namespace {
         auto operator co_await () {
             struct Awaiter {
                 io_uring_sqe *entry_{};
+                io_uring* ring_{};
                 write_ctx write_ctx_;
-                explicit Awaiter(io_uring_sqe * const sqe) : entry_{sqe} {}
+                explicit Awaiter(io_uring_sqe * const sqe, io_uring* const r) : entry_{sqe}, ring_(r) {}
                 bool await_ready() { return false; }
                 void await_suspend(std::coroutine_handle<> handle) noexcept {
                     write_ctx_.handle = handle;
                     io_uring_sqe_set_data(entry_, &write_ctx_);
+                    io_uring_submit(ring_);
                 }
                 int await_resume() { return write_ctx_.status_code; }
             };
-            return Awaiter{sqe_};
+            return Awaiter{sqe_, ring_};
         }
     private:
-        io_uring_sqe *sqe_;
+        io_uring_sqe *sqe_{};
+        io_uring *ring_{};
     };
 
     example::Task readUdpWriteFileAsync(example::udp_connection& udp,
@@ -153,10 +157,7 @@ int main() {
         tasks.push_back(readUdpWriteFileAsync(udp_conn, uring));
     }
 
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(5s);
     while(!all_done(tasks)) {
-        std::this_thread::sleep_for(1s);
         fmt::print("consume {}\n", consumeCQEntriesBlocking(uring));
     }
 
